@@ -13,7 +13,7 @@ const action = process.argv[2];
 const devicePath = `${__dirname}/device.json`;
 
 const searchDevice = () => {
-  new Promise((resolve) => {
+  return new Promise((resolve) => {
     console.log('开始搜索设备...');
 
     const bus = ssdp();
@@ -140,10 +140,9 @@ const main = async () => {
     device = JSON.parse(fs.readFileSync(devicePath).toString());
   }
   catch (e) {
-    device = await searchDevice();
   }
 
-  if (!device.details.URLBase) {
+  if (!device?.details?.URLBase) {
     device = await searchDevice();
   }
 
@@ -154,9 +153,14 @@ const main = async () => {
     await axios.get(rendererUrl);
   }
   catch (e) {
-    device = await searchDevice();
-    rendererUrl = `${device.details.URLBase}renderer.xml`;
+    device = null;
   }
+
+  if (!device?.details?.URLBase) {
+    device = await searchDevice();
+  }
+
+  rendererUrl = `${device.details.URLBase}renderer.xml`;
 
   switch (action) {
     default:
