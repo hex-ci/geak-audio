@@ -1,5 +1,9 @@
 # Geak Audio 果壳智能音响播放工具
 
+请先安装最新版 node js
+
+然后 npm ci
+
 ## 推送喜马拉雅播放列表
 
 `node index.js 喜马拉雅专辑ID`
