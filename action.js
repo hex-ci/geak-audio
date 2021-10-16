@@ -124,7 +124,29 @@ const previous = (rendererUrl) => {
 const info = (rendererUrl) => {
   const client = new Client(rendererUrl);
 
-  client.callAction('AVTransport', 'GetMediaInfo', { InstanceID: 0 }, function(err, result) {
+  // FavouriteFindout, GetMediaInfo, GetTransportInfo, GetPositionInfo, GetPlaylistInfo
+  client.callAction('AVTransport', 'GetTransportInfo', { InstanceID: 0 }, function(err, result) {
+    if (err) {
+      console.log(err);
+    };
+
+    console.log(result);
+  });
+
+  client.callAction('AVTransport', 'GetPositionInfo', { InstanceID: 0 }, function(err, result) {
+    if (err) {
+      console.log(err);
+    };
+
+    console.log(result);
+  });
+}
+
+const setPlayMode = (rendererUrl) => {
+  const client = new Client(rendererUrl);
+
+  // SEQUENCE_PLAY, RANDOM_PLAY, SINGLE_CYCLE
+  client.callAction('AVTransport', 'SetPlayMode', { InstanceID: 0, NewPlayMode: 'RANDOM_PLAY' }, function(err, result) {
     if (err) {
       console.log(err);
     };
@@ -190,6 +212,10 @@ const main = async () => {
 
     case 'info':
       info(rendererUrl);
+      break;
+
+    case 'mode':
+      setPlayMode(rendererUrl);
       break;
   }
 }

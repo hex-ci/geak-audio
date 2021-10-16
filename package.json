@@ -11,6 +11,10 @@
   "dependencies": {
     "@achingbrain/ssdp": "^2.1.2",
     "axios": "^0.21.0",
+    "dayjs": "^1.10.7",
+    "express": "^4.17.1",
+    "get-port": "^5.0.0",
+    "inquirer": "^8.2.0",
     "upnp-device-client": "^1.0.2"
   }
 }
