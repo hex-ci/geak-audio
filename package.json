@@ -1,8 +1,8 @@
 {
   "name": "geak-audio",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Geak Audio 果壳智能音响播放工具",
+  "main": "action.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

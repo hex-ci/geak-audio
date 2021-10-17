@@ -1,121 +1,7 @@
-const Client = require('upnp-device-client');
-const ssdp = require('@achingbrain/ssdp');
 const axios = require('axios');
-const fs = require('fs');
-const os = require('os');
-const getPort = require('get-port');
 const inquirer = require('inquirer');
 const dayjs = require('dayjs');
-const Netmask = require('netmask').Netmask;
-
-const playlistName = 'radio-cn-playlist.json';
-
-const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages?callback=jQuery112200675005212007802_1634453336791`;
-const devicePath = `${__dirname}/device.json`;
-
-const ipList = Object.values(os.networkInterfaces()).flat().filter(i => i.family == 'IPv4' && !i.internal);
-
-let playlistData;
-
-const searchDevice = () => {
-  return new Promise((resolve) => {
-    console.log('开始搜索设备...');
-
-    const bus = ssdp();
-
-    bus.on('error', console.error);
-
-    const usn = 'urn:schemas-upnp-org:device:MediaServer:1';
-
-    bus.discover(usn);
-
-    bus.on(`discover:${usn}`, service => {
-      // console.log(service);
-
-      if (service.UDN.indexOf('uuid:geakmusic') === 0) {
-        bus.stop();
-
-        console.log('搜索设备完成！');
-
-        // 缓存设备地址
-        fs.writeFileSync(`${__dirname}/device.json`, JSON.stringify(service));
-
-        resolve(service);
-      }
-    });
-  });
-}
-
-const pushPlaylist = async (rendererUrl, mediaInfo) => {
-  // 确定 ip 和端口
-  const parsedUrl = new URL(rendererUrl);
-  const block = new Netmask(parsedUrl.hostname, '255.255.255.0');
-
-  const ip = ipList.find(item => block.contains(item.address)).address;
-  const port = await getPort();
-
-  const playlistUrl = `http://${ip}:${port}/${playlistName}`;
-  const client = new Client(rendererUrl);
-
-  console.log('开始推送播放列表...');
-
-  await startServer(port);
-
-  const params = {
-    InstanceID: 0,
-    CurrentURI: `geakmusic://${mediaInfo.url}|2|${playlistUrl}|`,
-    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
-<item id="0" parentID="-1" restricted="false">
-<upnp:class>object.item.geakMusic</upnp:class>
-<dc:title>${mediaInfo.title}</dc:title>
-<dc:creator>Hex</dc:creator>
-<upnp:artist>${mediaInfo.artist}</upnp:artist>
-<upnp:album>${mediaInfo.album}</upnp:album>
-<upnp:albumArtURI></upnp:albumArtURI>
-<res protocolInfo="http-get:*:*:">${mediaInfo.url}}</res>
-</item></DIDL-Lite>`
-  };
-
-  client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-
-    client.callAction('AVTransport', 'SetAVTransportURI', params, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-
-      client.callAction('AVTransport', 'Play', { InstanceID: 0, Speed: 1 }, function(err, result) {
-        if (err) {
-          console.log(err);
-        }
-
-        console.log('推送完成！');
-      });
-    });
-  });
-}
-
-const startServer = async (port) => {
-  const express = require('express');
-  const app = express();
-  let server;
-
-  app.get(`/${playlistName}`, (req, res) => {
-    res.send(playlistData);
-    setImmediate(() => {
-      server.close();
-      process.exit(0);
-    })
-  });
-
-  return new Promise((resolve) => {
-    server = app.listen(port, () => {
-      resolve(port);
-    })
-  })
-}
+const { pushPlaylist } = require('./utils');
 
 const makeMenu = async (channels) => {
   const choices = channels.map((item, index) => ({
@@ -193,7 +79,9 @@ const getLivePlaylist = (channelId, pageData) => {
 };
 
 const main = async () => {
-  console.log('正在获取云听电台频道列表...\n');
+  console.log('正在下载云听电台频道列表...\n');
+
+  const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages?callback=jQuery112200675005212007802_1634453336791`;
 
   let pageResult = await axios.get(radioCnPageUrl, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }
@@ -204,6 +92,8 @@ const main = async () => {
   const answers = await makeMenu(pageResult.data.channel);
   const channelId = answers.channel;
 
+  console.log();
+
   let output;
 
   if (answers.type === 'live') {
@@ -213,46 +103,12 @@ const main = async () => {
     output = await getPlaybackPlaylist(channelId);
   }
 
-  const mediaInfo = {
+  pushPlaylist(JSON.stringify(output), {
     url: output.TracksMetaData[0].url,
     title: '',
     artist: '',
     album: ''
-  };
-
-  playlistData = JSON.stringify(output);
-
-  console.log('生成完成！');
-
-  let device;
-
-  try {
-    device = JSON.parse(fs.readFileSync(devicePath).toString());
-  }
-  catch (e) {
-  }
-
-  if (!device?.details?.URLBase) {
-    device = await searchDevice();
-  }
-
-  let rendererUrl = `${device.details.URLBase}renderer.xml`;
-
-  // 测试设备地址
-  try {
-    await axios.get(rendererUrl);
-  }
-  catch (e) {
-    device = null;
-  }
-
-  if (!device?.details?.URLBase) {
-    device = await searchDevice();
-  }
-
-  rendererUrl = `${device.details.URLBase}renderer.xml`;
-
-  pushPlaylist(rendererUrl, mediaInfo);
+  });
 }
 
 main();

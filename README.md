@@ -1,8 +1,16 @@
 # Geak Audio 果壳智能音响播放工具
 
-请先安装最新版 node js
+请先安装 node js，推荐 14.x
 
 然后 npm ci
+
+## 播放喜马拉雅专辑
+
+`node xmly.js 专辑ID`
+
+## 播放喜马拉雅电台
+
+`node xmly-radio.js 电台ID`
 
 ## 播放云听电台直播或昨日回放
 
