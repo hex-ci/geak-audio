@@ -15,6 +15,7 @@
     "express": "^4.17.1",
     "get-port": "^5.0.0",
     "inquirer": "^8.2.0",
+    "netmask": "^2.0.2",
     "upnp-device-client": "^1.0.2"
   }
 }

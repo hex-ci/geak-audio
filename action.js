@@ -41,31 +41,30 @@ const searchDevice = () => {
   });
 }
 
-const getStatus = (rendererUrl) => {
+const callAction = (client, type, method, params = {}) => {
+  return new Promise((resolve) => {
+    client.callAction(type, method, { InstanceID: 0, ...params }, function(err, result) {
+      if (err) {
+        resolve(false);
+        return;
+      };
+
+      resolve(result);
+    });
+  });
+}
+
+const getStatus = async (rendererUrl) => {
   const client = new Client(rendererUrl);
 
-  client.callAction('AVTransport', 'GetPowerStatus', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    };
+  const device = await callAction(client, 'AVTransport', 'GetDeviceInfo');
+  const power = await callAction(client, 'AVTransport', 'GetPowerStatus');
+  const volume = await callAction(client, 'RenderingControl', 'GetVolume');
 
-    console.log(result);
-  });
-
-  client.callAction('AVTransport', 'GetDeviceInfo', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    };
-
-    console.log(JSON.parse(result.DeviceInfo));
-  });
-
-  client.callAction('RenderingControl', 'GetVolume', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    };
-
-    console.log(result);
+  console.log({
+    device: JSON.parse(device?.DeviceInfo),
+    power: power?.PowerStatus,
+    volume: volume?.CurrentVolume
   });
 }
 
@@ -129,24 +128,16 @@ const previous = (rendererUrl) => {
   });
 }
 
-const info = (rendererUrl) => {
+const info = async (rendererUrl) => {
   const client = new Client(rendererUrl);
 
   // FavouriteFindout, GetMediaInfo, GetTransportInfo, GetPositionInfo, GetPlaylistInfo
-  client.callAction('AVTransport', 'GetTransportInfo', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    };
+  const positionInfo = await callAction(client, 'AVTransport', 'GetPositionInfo');
+  const transportInfo = await callAction(client, 'AVTransport', 'GetTransportInfo');
 
-    console.log(result);
-  });
-
-  client.callAction('AVTransport', 'GetPositionInfo', { InstanceID: 0 }, function(err, result) {
-    if (err) {
-      console.log(err);
-    };
-
-    console.log(result);
+  console.log({
+    position: positionInfo,
+    transport: transportInfo
   });
 }
 
@@ -161,6 +152,15 @@ const setPlayMode = (rendererUrl) => {
 
     console.log(result);
   });
+}
+
+const setVolume = async (rendererUrl) => {
+  const client = new Client(rendererUrl);
+
+  await callAction(client, 'RenderingControl', 'SetVolume', { Channel: 'Master', DesiredVolume: process.argv[3] });
+  const volume = await callAction(client, 'RenderingControl', 'GetVolume');
+
+  console.log(volume);
 }
 
 const main = async () => {
@@ -183,6 +183,7 @@ const main = async () => {
     await axios.get(rendererUrl);
   }
   catch (e) {
+    console.log('缓存失效，重新搜索设备')
     device = null;
   }
 
@@ -224,6 +225,10 @@ const main = async () => {
 
     case 'mode':
       setPlayMode(rendererUrl);
+      break;
+
+    case 'volume':
+      setVolume(rendererUrl);
       break;
   }
 }

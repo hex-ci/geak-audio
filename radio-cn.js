@@ -6,13 +6,14 @@ const os = require('os');
 const getPort = require('get-port');
 const inquirer = require('inquirer');
 const dayjs = require('dayjs');
+const Netmask = require('netmask').Netmask;
 
 const playlistName = 'radio-cn-playlist.json';
 
 const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages`;
 const devicePath = `${__dirname}/device.json`;
 
-const ip = Object.values(os.networkInterfaces()).flat().find(i => i.family == 'IPv4' && !i.internal).address;
+const ipList = Object.values(os.networkInterfaces()).flat().filter(i => i.family == 'IPv4' && !i.internal);
 
 let firstInfo;
 let playlistData;
@@ -46,16 +47,35 @@ const searchDevice = () => {
   });
 }
 
-const pushPlaylist = (rendererUrl, port) => {
+const pushPlaylist = async (rendererUrl) => {
+  // 确定 ip 和端口
+  const parsedUrl = new URL(rendererUrl);
+  const block = new Netmask(parsedUrl.hostname, '255.255.255.0');
+
+  const ip = ipList.find(item => block.contains(item.address)).address;
+  const port = await getPort();
+
   const playlistUrl = `http://${ip}:${port}/${playlistName}`;
   const client = new Client(rendererUrl);
 
   console.log('开始推送播放列表...');
 
+  await startServer(port);
+
   const params = {
     InstanceID: 0,
     CurrentURI: `geakmusic://${firstInfo.stream[0].url}|2|${playlistUrl}|`,
-    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"><item id="0" parentID="-1" restricted="false"><upnp:class>object.item.geakMusic</upnp:class><dc:title>${firstInfo.channelId}</dc:title><dc:creator>Hex</dc:creator><upnp:artist>${firstInfo.programId}</upnp:artist><upnp:album></upnp:album><upnp:albumArtURI></upnp:albumArtURI><res protocolInfo="http-get:*:audio/mpeg:">${firstInfo.stream[0].url}</res></item></DIDL-Lite>`
+    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
+<item id="0" parentID="-1" restricted="false">
+<upnp:class>object.item.geakMusic</upnp:class>
+<dc:title>${firstInfo.channelId}</dc:title>
+<dc:creator>Hex</dc:creator>
+<upnp:artist>${firstInfo.programId}</upnp:artist>
+<upnp:album></upnp:album>
+<upnp:albumArtURI></upnp:albumArtURI>
+<res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res>
+</item>
+</DIDL-Lite>`
   };
 
   client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
@@ -79,15 +99,17 @@ const pushPlaylist = (rendererUrl, port) => {
   });
 }
 
-const startServer = async () => {
+const startServer = async (port) => {
   const express = require('express');
   const app = express();
-  const port = await getPort();
   let server;
 
   app.get(`/${playlistName}`, (req, res) => {
     res.send(playlistData);
-    server.close();
+    setImmediate(() => {
+      server.close();
+      process.exit(0);
+    })
   });
 
   return new Promise((resolve) => {
@@ -155,8 +177,6 @@ const main = async () => {
 
   console.log('生成完成！');
 
-  const port = await startServer();
-
   let device;
 
   try {
@@ -185,7 +205,7 @@ const main = async () => {
 
   rendererUrl = `${device.details.URLBase}renderer.xml`;
 
-  pushPlaylist(rendererUrl, port);
+  pushPlaylist(rendererUrl);
 }
 
 main();
