@@ -65,7 +65,16 @@ const pushPlaylist = async (rendererUrl) => {
   const params = {
     InstanceID: 0,
     CurrentURI: `geakmusic://${firstInfo.stream[0].url}|2|${playlistUrl}|`,
-    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"><item id="0" parentID="-1" restricted="false"><upnp:class>object.item.geakMusic</upnp:class><dc:title>${firstInfo.channelId}</dc:title><dc:creator>Hex</dc:creator><upnp:artist>${firstInfo.programId}</upnp:artist><upnp:album></upnp:album><upnp:albumArtURI></upnp:albumArtURI><res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res></item></DIDL-Lite>`
+    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
+<item id="0" parentID="-1" restricted="false">
+<upnp:class>object.item.geakMusic</upnp:class>
+<dc:title>${firstInfo.channelId}</dc:title>
+<dc:creator>Hex</dc:creator>
+<upnp:artist>${firstInfo.programId}</upnp:artist>
+<upnp:album></upnp:album>
+<upnp:albumArtURI></upnp:albumArtURI>
+<res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res>
+</item></DIDL-Lite>`
   };
 
   client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
@@ -118,8 +127,8 @@ const makeMenu = async () => {
 
   result = JSON.parse(result.data.replace(/^jQuery112200675005212007802_1634453336791\(([\s\S]*)\)$/, '$1'));
 
-  const channels = result.data.channel.map(item => ({
-    name: item.name,
+  const channels = result.data.channel.map((item, index) => ({
+    name: `${index + 1}. ${item.name}`,
     value: item.id
   }));
 
@@ -129,7 +138,6 @@ const makeMenu = async () => {
       name: 'channel',
       message: '请选择频道',
       pageSize: 20,
-      loop: false,
       choices: channels
     }
   ]);
@@ -140,7 +148,7 @@ const makeMenu = async () => {
 const main = async () => {
   const channelId = await makeMenu();
 
-  console.log('正在下载云听电台...');
+  console.log('\n正在下载云听电台...');
 
   const yesterday = dayjs().subtract(1, 'days').format('YYYY-MM-DD');
   const radioCnChannelUrl = `http://tacc.radio.cn/pcpages/liveSchedules?callback=jQuery112200675005212007802_1634453336791&date=${yesterday}&channel_id=${channelId}`;
