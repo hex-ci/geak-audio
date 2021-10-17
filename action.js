@@ -47,7 +47,7 @@ const callAction = (client, type, method, params = {}) => {
       if (err) {
         resolve(false);
         return;
-      };
+      }
 
       resolve(result);
     });
@@ -74,7 +74,7 @@ const play = (rendererUrl) => {
   client.callAction('AVTransport', 'Play', { InstanceID: 0, Speed: 1 }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });
@@ -86,7 +86,7 @@ const stop = (rendererUrl) => {
   client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });
@@ -98,7 +98,7 @@ const pause = (rendererUrl) => {
   client.callAction('AVTransport', 'Pause', { InstanceID: 0 }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });
@@ -110,7 +110,7 @@ const next = (rendererUrl) => {
   client.callAction('AVTransport', 'Next', { InstanceID: 0 }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });
@@ -122,7 +122,7 @@ const previous = (rendererUrl) => {
   client.callAction('AVTransport', 'Previous', { InstanceID: 0 }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });
@@ -148,7 +148,7 @@ const setPlayMode = (rendererUrl) => {
   client.callAction('AVTransport', 'SetPlayMode', { InstanceID: 0, NewPlayMode: 'RANDOM_PLAY' }, function(err, result) {
     if (err) {
       console.log(err);
-    };
+    }
 
     console.log(result);
   });

@@ -17,5 +17,8 @@
     "inquirer": "^8.2.0",
     "netmask": "^2.0.2",
     "upnp-device-client": "^1.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.1"
   }
 }

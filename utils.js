@@ -116,17 +116,17 @@ const pushPlaylist = async (playlistData, mediaInfo) => {
 </item></DIDL-Lite>`
   };
 
-  client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
+  client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err) {
     if (err) {
       console.log(err);
     }
 
-    client.callAction('AVTransport', 'SetAVTransportURI', params, function(err, result) {
+    client.callAction('AVTransport', 'SetAVTransportURI', params, function(err) {
       if (err) {
         console.log(err);
       }
 
-      client.callAction('AVTransport', 'Play', { InstanceID: 0, Speed: 1 }, function(err, result) {
+      client.callAction('AVTransport', 'Play', { InstanceID: 0, Speed: 1 }, function(err) {
         if (err) {
           console.log(err);
         }
