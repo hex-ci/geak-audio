@@ -59,6 +59,14 @@ const getStatus = (rendererUrl) => {
 
     console.log(JSON.parse(result.DeviceInfo));
   });
+
+  client.callAction('RenderingControl', 'GetVolume', { InstanceID: 0 }, function(err, result) {
+    if (err) {
+      console.log(err);
+    };
+
+    console.log(result);
+  });
 }
 
 const play = (rendererUrl) => {

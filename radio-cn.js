@@ -18,31 +18,31 @@ let firstInfo;
 let playlistData;
 
 const searchDevice = () => {
-  console.log('开始搜索设备...');
+  return new Promise((resolve) => {
+    console.log('开始搜索设备...');
 
-  const bus = ssdp();
+    const bus = ssdp();
 
-  bus.on('error', console.error);
+    bus.on('error', console.error);
 
-  const usn = 'urn:schemas-upnp-org:service:ConnectionManager:1';
+    const usn = 'urn:schemas-upnp-org:device:MediaServer:1';
 
-  bus.discover(usn);
+    bus.discover(usn);
 
-  bus.on(`discover:${usn}`, service => {
-    // console.log(service);
+    bus.on(`discover:${usn}`, service => {
+      // console.log(service);
 
-    if (service.UDN.indexOf('uuid:geakmusic') === 0) {
-      bus.stop();
+      if (service.UDN.indexOf('uuid:geakmusic') === 0) {
+        bus.stop();
 
-      console.log('搜索设备完成！');
+        console.log('搜索设备完成！');
 
-      const rendererUrl = `${service.details.URLBase}renderer.xml`;
+        // 缓存设备地址
+        fs.writeFileSync(`${__dirname}/device.json`, JSON.stringify(service));
 
-      // 缓存设备地址
-      fs.writeFileSync(`${__dirname}/device.json`, JSON.stringify(service));
-
-      pushPlaylist(rendererUrl);
-    }
+        resolve(service);
+      }
+    });
   });
 }
 
@@ -157,29 +157,35 @@ const main = async () => {
 
   const port = await startServer();
 
+  let device;
+
   try {
-    const device = JSON.parse(fs.readFileSync(devicePath).toString());
-
-    if (!device?.details?.URLBase) {
-      searchDevice();
-    }
-    else {
-      // 测试设备地址
-      try {
-        const rendererUrl = `${device.details.URLBase}renderer.xml`;
-
-        await axios.get(rendererUrl);
-
-        pushPlaylist(rendererUrl, port);
-      }
-      catch (e) {
-        searchDevice();
-      }
-    }
+    device = JSON.parse(fs.readFileSync(devicePath).toString());
   }
   catch (e) {
-    searchDevice();
   }
+
+  if (!device?.details?.URLBase) {
+    device = await searchDevice();
+  }
+
+  let rendererUrl = `${device.details.URLBase}renderer.xml`;
+
+  // 测试设备地址
+  try {
+    await axios.get(rendererUrl);
+  }
+  catch (e) {
+    device = null;
+  }
+
+  if (!device?.details?.URLBase) {
+    device = await searchDevice();
+  }
+
+  rendererUrl = `${device.details.URLBase}renderer.xml`;
+
+  pushPlaylist(rendererUrl, port);
 }
 
 main();
