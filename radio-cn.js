@@ -10,7 +10,7 @@ const Netmask = require('netmask').Netmask;
 
 const playlistName = 'radio-cn-playlist.json';
 
-const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages`;
+const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages?callback=`;
 const devicePath = `${__dirname}/device.json`;
 
 const ipList = Object.values(os.networkInterfaces()).flat().filter(i => i.family == 'IPv4' && !i.internal);
@@ -65,17 +65,7 @@ const pushPlaylist = async (rendererUrl) => {
   const params = {
     InstanceID: 0,
     CurrentURI: `geakmusic://${firstInfo.stream[0].url}|2|${playlistUrl}|`,
-    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
-<item id="0" parentID="-1" restricted="false">
-<upnp:class>object.item.geakMusic</upnp:class>
-<dc:title>${firstInfo.channelId}</dc:title>
-<dc:creator>Hex</dc:creator>
-<upnp:artist>${firstInfo.programId}</upnp:artist>
-<upnp:album></upnp:album>
-<upnp:albumArtURI></upnp:albumArtURI>
-<res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res>
-</item>
-</DIDL-Lite>`
+    CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"><item id="0" parentID="-1" restricted="false"><upnp:class>object.item.geakMusic</upnp:class><dc:title>${firstInfo.channelId}</dc:title><dc:creator>Hex</dc:creator><upnp:artist>${firstInfo.programId}</upnp:artist><upnp:album></upnp:album><upnp:albumArtURI></upnp:albumArtURI><res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res></item></DIDL-Lite>`
   };
 
   client.callAction('AVTransport', 'Stop', { InstanceID: 0 }, function(err, result) {
