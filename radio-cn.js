@@ -15,7 +15,6 @@ const devicePath = `${__dirname}/device.json`;
 
 const ipList = Object.values(os.networkInterfaces()).flat().filter(i => i.family == 'IPv4' && !i.internal);
 
-let firstInfo;
 let playlistData;
 
 const searchDevice = () => {
@@ -47,7 +46,7 @@ const searchDevice = () => {
   });
 }
 
-const pushPlaylist = async (rendererUrl) => {
+const pushPlaylist = async (rendererUrl, mediaInfo) => {
   // 确定 ip 和端口
   const parsedUrl = new URL(rendererUrl);
   const block = new Netmask(parsedUrl.hostname, '255.255.255.0');
@@ -64,16 +63,16 @@ const pushPlaylist = async (rendererUrl) => {
 
   const params = {
     InstanceID: 0,
-    CurrentURI: `geakmusic://${firstInfo.stream[0].url}|2|${playlistUrl}|`,
+    CurrentURI: `geakmusic://${mediaInfo.url}|2|${playlistUrl}|`,
     CurrentURIMetaData: `<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
 <item id="0" parentID="-1" restricted="false">
 <upnp:class>object.item.geakMusic</upnp:class>
-<dc:title>${firstInfo.channelId}</dc:title>
+<dc:title>${mediaInfo.title}</dc:title>
 <dc:creator>Hex</dc:creator>
-<upnp:artist>${firstInfo.programId}</upnp:artist>
-<upnp:album></upnp:album>
+<upnp:artist>${mediaInfo.artist}</upnp:artist>
+<upnp:album>${mediaInfo.album}</upnp:album>
 <upnp:albumArtURI></upnp:albumArtURI>
-<res protocolInfo="http-get:*:*:">${firstInfo.stream[0].url}</res>
+<res protocolInfo="http-get:*:*:">${mediaInfo.url}}</res>
 </item></DIDL-Lite>`
   };
 
@@ -118,16 +117,8 @@ const startServer = async (port) => {
   })
 }
 
-const makeMenu = async () => {
-  console.log('正在获取云听电台频道列表...\n');
-
-  let result = await axios.get(radioCnPageUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }
-  });
-
-  result = JSON.parse(result.data.replace(/^jQuery112200675005212007802_1634453336791\(([\s\S]*)\)$/, '$1'));
-
-  const channels = result.data.channel.map((item, index) => ({
+const makeMenu = async (channels) => {
+  const choices = channels.map((item, index) => ({
     name: `${index + 1}. ${item.name}`,
     value: item.id
   }));
@@ -135,19 +126,26 @@ const makeMenu = async () => {
   const answers = await inquirer.prompt([
     {
       type: 'list',
+      name: 'type',
+      message: '请选择播放类型',
+      choices: [
+        { name: '直播', value: 'live' },
+        { name: '昨日回放', value: 'playback' },
+      ]
+    },
+    {
+      type: 'list',
       name: 'channel',
       message: '请选择频道',
       pageSize: 20,
-      choices: channels
+      choices
     }
   ]);
 
-  return answers.channel;
+  return answers;
 };
 
-const main = async () => {
-  const channelId = await makeMenu();
-
+const getPlaybackPlaylist = async (channelId) => {
   console.log('\n正在下载云听电台...');
 
   const yesterday = dayjs().subtract(1, 'days').format('YYYY-MM-DD');
@@ -169,15 +167,58 @@ const main = async () => {
     }
 
     output.TracksMetaData.push({
-      'type': 1,
-      'uuid': '',
-      'metadata': '',
-      'url': item.stream[0].url,
-      'title': item.programName
+      type: 2,
+      uuid: '',
+      metadata: '',
+      url: item.stream[0].url,
+      title: item.programName
     });
   });
 
-  firstInfo = result.data.program[0];
+  return output;
+};
+
+const getLivePlaylist = (channelId, pageData) => {
+  const channelDetail = pageData.channel.find(item => item.id == channelId);
+
+  return {
+    TracksMetaData: [{
+      type: 2,
+      uuid: '',
+      metadata: '',
+      url: `ffmpeg://${channelDetail.streams[0].url}`,
+      title: channelDetail.name
+    }]
+  };
+};
+
+const main = async () => {
+  console.log('正在获取云听电台频道列表...\n');
+
+  let pageResult = await axios.get(radioCnPageUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }
+  });
+
+  pageResult = JSON.parse(pageResult.data.replace(/^jQuery112200675005212007802_1634453336791\(([\s\S]*)\)$/, '$1'));
+
+  const answers = await makeMenu(pageResult.data.channel);
+  const channelId = answers.channel;
+
+  let output;
+
+  if (answers.type === 'live') {
+    output = await getLivePlaylist(channelId, pageResult.data);
+  }
+  else {
+    output = await getPlaybackPlaylist(channelId);
+  }
+
+  const mediaInfo = {
+    url: output.TracksMetaData[0].url,
+    title: '',
+    artist: '',
+    album: ''
+  };
 
   playlistData = JSON.stringify(output);
 
@@ -211,7 +252,7 @@ const main = async () => {
 
   rendererUrl = `${device.details.URLBase}renderer.xml`;
 
-  pushPlaylist(rendererUrl);
+  pushPlaylist(rendererUrl, mediaInfo);
 }
 
 main();
