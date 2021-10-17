@@ -41,3 +41,9 @@
 ### 当前播放信息
 
 `node action.js info`
+
+### 设置音量
+
+`node action.js volume 音量值`
+
+音量值范围 0-100
