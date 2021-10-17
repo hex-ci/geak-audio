@@ -10,7 +10,7 @@ const Netmask = require('netmask').Netmask;
 
 const playlistName = 'radio-cn-playlist.json';
 
-const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages?callback=`;
+const radioCnPageUrl = `http://tacc.radio.cn/pcpages/radiopages?callback=jQuery112200675005212007802_1634453336791`;
 const devicePath = `${__dirname}/device.json`;
 
 const ipList = Object.values(os.networkInterfaces()).flat().filter(i => i.family == 'IPv4' && !i.internal);
@@ -112,9 +112,13 @@ const startServer = async (port) => {
 const makeMenu = async () => {
   console.log('正在获取云听电台频道列表...\n');
 
-  const result = await axios.get(radioCnPageUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }});
+  let result = await axios.get(radioCnPageUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }
+  });
 
-  const channels = result.data.data.channel.map(item => ({
+  result = JSON.parse(result.data.replace(/^jQuery112200675005212007802_1634453336791\(([\s\S]*)\)$/, '$1'));
+
+  const channels = result.data.channel.map(item => ({
     name: item.name,
     value: item.id
   }));
@@ -139,15 +143,19 @@ const main = async () => {
   console.log('正在下载云听电台...');
 
   const yesterday = dayjs().subtract(1, 'days').format('YYYY-MM-DD');
-  const radioCnChannelUrl = `http://tacc.radio.cn/pcpages/liveSchedules?date=${yesterday}&channel_id=${channelId}`;
+  const radioCnChannelUrl = `http://tacc.radio.cn/pcpages/liveSchedules?callback=jQuery112200675005212007802_1634453336791&date=${yesterday}&channel_id=${channelId}`;
 
-  const result = await axios.get(radioCnChannelUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }});
+  let result = await axios.get(radioCnChannelUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36' }
+  });
+
+  result = JSON.parse(result.data.replace(/^jQuery112200675005212007802_1634453336791\(([\s\S]*)\)$/, '$1'));
 
   console.log('下载完成！正在生成播放列表...');
 
   const output = { TracksMetaData: [] };
 
-  result.data.data.program.forEach((item) => {
+  result.data.program.forEach((item) => {
     if (!item.stream) {
       return;
     }
@@ -161,7 +169,7 @@ const main = async () => {
     });
   });
 
-  firstInfo = result.data.data.program[0];
+  firstInfo = result.data.program[0];
 
   playlistData = JSON.stringify(output);
 
