@@ -35,6 +35,11 @@ const main = async () => {
     });
   });
 
+  if (!output.length) {
+    console.log('不支持此专辑数据，请换一个专辑。');
+    return;
+  }
+
   pushPlaylist(JSON.stringify(output), {
     url: output.TracksMetaData[0].url,
     title: '',
