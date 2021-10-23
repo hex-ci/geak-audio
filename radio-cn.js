@@ -1,7 +1,7 @@
 const axios = require('axios');
 const inquirer = require('inquirer');
 const dayjs = require('dayjs');
-const { pushPlaylist } = require('./utils');
+const { pushPlaylist } = require('./device');
 
 const makeMenu = async (channels) => {
   const choices = channels.map((item, index) => ({
@@ -103,12 +103,7 @@ const main = async () => {
     output = await getPlaybackPlaylist(channelId);
   }
 
-  pushPlaylist(JSON.stringify(output), {
-    url: output.TracksMetaData[0].url,
-    title: '',
-    artist: '',
-    album: ''
-  });
+  pushPlaylist(output);
 }
 
 main();

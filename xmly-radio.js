@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { pushPlaylist } = require('./utils');
+const { pushPlaylist } = require('./device');
 
 if (process.argv.length < 3) {
   console.log('用法: node xmly-radio.js 喜马拉雅电台ID');
@@ -29,12 +29,7 @@ const main = async () => {
     }]
   };
 
-  pushPlaylist(JSON.stringify(output), {
-    url: output.TracksMetaData[0].url,
-    title: '',
-    artist: '',
-    album: ''
-  });
+  pushPlaylist(output);
 }
 
 main();
