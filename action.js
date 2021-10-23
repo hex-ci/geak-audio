@@ -134,10 +134,12 @@ const info = async (rendererUrl) => {
   // FavouriteFindout, GetMediaInfo, GetTransportInfo, GetPositionInfo, GetPlaylistInfo
   const positionInfo = await callAction(client, 'AVTransport', 'GetPositionInfo');
   const transportInfo = await callAction(client, 'AVTransport', 'GetTransportInfo');
+  const mediaInfo = await callAction(client, 'AVTransport', 'GetMediaInfo');
 
   console.log({
     position: positionInfo,
-    transport: transportInfo
+    transport: transportInfo,
+    media: mediaInfo
   });
 }
 
